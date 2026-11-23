@@ -4,12 +4,16 @@ import json
 import os
 import urllib.request
 
+import d20
+
 API_URL = "https://api.mistral.ai/v1/chat/completions"
 SYSTEM_PROMPT = "You are the narrator of a tabletop RPG."
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(d20.__file__)))
+_DOTENV_PATH = os.path.join(_REPO_ROOT, ".env")
 
 
-def _load_dotenv(path=".env"):
-    """Load KEY=VALUE lines from .env into os.environ if the file exists."""
+def _load_dotenv(path=_DOTENV_PATH):
+    """Load KEY=VALUE lines from the repo-root .env into os.environ (env wins)."""
     if os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
             for line in fh:

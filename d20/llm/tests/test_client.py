@@ -1,8 +1,10 @@
 """Tests for d20.llm.client using StubLLM only. No network access."""
 
 import inspect
+import os
 
-from d20.llm.client import StubLLM, narrate
+import d20
+from d20.llm.client import StubLLM, _load_dotenv, narrate
 
 
 def test_narrate_signature():
@@ -33,3 +35,22 @@ def test_stub_llm_records_prompts():
 def test_stub_llm_matches_narrate_interface():
     params = list(inspect.signature(StubLLM.narrate).parameters)
     assert params == ["self", "user_prompt"]
+
+
+def test_load_dotenv_reads_file_and_real_env_wins(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "MISTRAL_MODEL=from-dotenv\n# comment\n\nNOEQUALSIGN\n", encoding="utf-8"
+    )
+    monkeypatch.delenv("MISTRAL_MODEL", raising=False)
+    _load_dotenv(str(env_file))
+    assert os.environ["MISTRAL_MODEL"] == "from-dotenv"
+    monkeypatch.setenv("MISTRAL_MODEL", "from-real-env")
+    _load_dotenv(str(env_file))
+    assert os.environ["MISTRAL_MODEL"] == "from-real-env"
+
+
+def test_load_dotenv_default_path_is_repo_root_env():
+    default = inspect.signature(_load_dotenv).parameters["path"].default
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(d20.__file__)))
+    assert default == os.path.join(repo_root, ".env")
