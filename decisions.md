@@ -21,7 +21,7 @@ Alternatives: AI push of empty orphan main (rejected: the rule admits
 no exceptions); leaving task/0-skeleton as default branch (rejected:
 inverts the review flow).
 Decided-by: planner
-Status: Accepted in PR #1
+Status: Accepted in PR #2
 
 ## D-003 — Accepted Task 0 deviations and CLI polish — 2026-11-23
 Context: review flagged implementation choices beyond the card spec.
@@ -31,4 +31,4 @@ repo root, clean CLI error handling.
 Alternatives: strict bare d20 only for adv/dis (rejected: needless
 strictness); traceback on CLI input errors (rejected: bad UX).
 Decided-by: planner
-Status: Accepted (PR to be opened)
+Status: Accepted in PR #2
