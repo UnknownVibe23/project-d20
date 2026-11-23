@@ -64,3 +64,9 @@ Decision: <1-2 lines>
 Alternatives: <1 line>
 Decided-by: <planner | coding-agent>
 Status: <Accepted in PR #<n>>
+
+## Bootstrap note
+main was created once by the human directly on GitHub (stub README)
+before PR #1. There are NO exceptions to "never commit to or push
+main", including empty, orphan, or bootstrap commits. If a base
+branch is ever missing, stop and ask again.
