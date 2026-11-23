@@ -22,3 +22,13 @@ no exceptions); leaving task/0-skeleton as default branch (rejected:
 inverts the review flow).
 Decided-by: planner
 Status: Accepted in PR #1
+
+## D-003 — Accepted Task 0 deviations and CLI polish — 2026-11-23
+Context: review flagged implementation choices beyond the card spec.
+Decision: accepted: modifier with single-d20 advantage/disadvantage
+(d20+5), dice count cap 100, adv/dis output format, .env anchored to
+repo root, clean CLI error handling.
+Alternatives: strict bare d20 only for adv/dis (rejected: needless
+strictness); traceback on CLI input errors (rejected: bad UX).
+Decided-by: planner
+Status: Accepted (PR to be opened)
