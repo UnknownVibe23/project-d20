@@ -1,6 +1,7 @@
 """CLI entry point: python -m d20.roll 2d6+3 [--advantage|--disadvantage]."""
 
 import argparse
+import sys
 
 from d20.rules.dice import roll
 
@@ -27,7 +28,12 @@ def main() -> None:
         if args.disadvantage
         else "normal"
     )
-    print(roll(args.expression, mode))
+    try:
+        result = roll(args.expression, mode)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+    print(result)
 
 
 if __name__ == "__main__":
