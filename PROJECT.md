@@ -10,6 +10,6 @@ engine -> 3 module runner -> 4 VTT -> 5 campaign polish.
 
 ## Status
 - Current phase: 1 (narrator loop) — in progress
-- Last completed task: Task 2-gm-contract (GM contract + prompt builder, PR #4)
-- Task 3-narrator-loop: narrator loop + play journal + `d20.play` CLI in review (PR #5)
+- Last completed task: Task 3-narrator-loop (narrator loop + play journal + `d20.play` CLI, PR #5)
+- Task P1-F1: narrator client timeout (MISTRAL_TIMEOUT, default 120s) + structured-content reply extraction in review (PR #6)
 - Next: Phase 2 (database + rules engine)
