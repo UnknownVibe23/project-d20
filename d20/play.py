@@ -59,8 +59,7 @@ def main(argv=None, llm=None, input_fn=None, print_fn=None) -> None:
         if args.new is not None:
             if save_path.exists():
                 raise FileExistsError(
-                    f"save file already exists: {save_path}; "
-                    "refusing to overwrite it"
+                    f"save file already exists: {save_path}; refusing to overwrite it"
                 )
             game = new_game(args.new, args.description)
             save_game(game, save_path)

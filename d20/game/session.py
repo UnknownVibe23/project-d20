@@ -2,7 +2,7 @@
 
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from d20.game.journal import append_journal_entry
@@ -15,8 +15,10 @@ _HELP_LINES = (
     "/quit                end the session (progress is already saved)",
     "/take <item>         add <item> to your inventory",
     "/drop <item>         remove <item> from your inventory",
-    "/flag <key> <value>  set a game flag (true/false, integer, or text; "
-    "no value means true)",
+    (
+        "/flag <key> <value>  set a game flag (true/false, integer, or "
+        "text; no value means true)"
+    ),
     "/stats               show the current facts block",
 )
 
@@ -98,7 +100,7 @@ class GameSession:
         append_journal_entry(
             self.journal_path,
             {
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "turn": turn,
                 "player_input": player_input,
                 "prompt_chars": sum(len(m["content"]) for m in messages),
