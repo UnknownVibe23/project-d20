@@ -18,9 +18,10 @@ def main(argv=None, llm=None, input_fn=None, print_fn=None) -> None:
 
     Expected errors (bad paths, corrupt or missing save, existing save on
     --new) print "error: <message>" to stderr and exit 2. LLM/network errors
-    during a turn print a one-line error and exit 1; the save then still
-    holds the last completed turn. The optional argv/llm/input_fn/print_fn
-    arguments are injection seams that keep the CLI testable offline.
+    during a turn print a one-line error plus a save-safety note and exit 1;
+    the save then still holds the last completed turn. The optional
+    argv/llm/input_fn/print_fn arguments are injection seams that keep the
+    CLI testable offline.
     """
     parser = argparse.ArgumentParser(
         prog="d20.play",
@@ -95,6 +96,10 @@ def main(argv=None, llm=None, input_fn=None, print_fn=None) -> None:
         raise SystemExit(1) from None
     except (OSError, ValueError) as exc:
         print(f"error: narrator call failed: {exc}", file=sys.stderr)
+        print(
+            "Your save is intact. Run `python -m d20.play` to resume.",
+            file=sys.stderr,
+        )
         raise SystemExit(1) from None
 
 

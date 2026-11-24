@@ -27,6 +27,15 @@ SemVer 0.x.
   --journal flags, exit code 2 on expected errors, exit code 1 with a
   one-line error on LLM/network failures mid-session (Task 3-narrator-loop)
 
+### Changed
+- GM contract (`prompts/gm.txt`): new clearly-marked "Round-1 playtest
+  addendum" section with rules 5-7 — a narration length budget (normally
+  2-5 sentences, never more than ~150 words), companion continuity
+  (established companions persist and are accounted for in every scene
+  where they are present), and inner-state flags (declared flags color
+  the narration but are never invented or changed); existing rules 1-4
+  are untouched and unrenumbered (Task P1-F2)
+
 ### Fixed
 - Narrator client (`d20/llm/client.py`): the HTTP timeout now comes from
   the `MISTRAL_TIMEOUT` env var (default 120s, real env wins over `.env`),
@@ -35,3 +44,7 @@ SemVer 0.x.
   `text` fields of `type == "text"` blocks) and raises a readable
   `ValueError` naming the `finish_reason` when the reply contains no text
   (Task P1-F1)
+- CLI `d20.play`: after the "error: narrator call failed: <reason>" line,
+  a failed narrator call now also prints "Your save is intact. Run
+  `python -m d20.play` to resume."; exit code 1 unchanged, no in-loop
+  retry, still traceback-free (Task P1-F2)
