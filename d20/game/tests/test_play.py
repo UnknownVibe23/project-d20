@@ -154,7 +154,10 @@ def test_network_error_during_a_turn_exits_1_and_keeps_the_last_save(
     with pytest.raises(SystemExit) as exc:
         main(input_fn=iter(["new action"]).__next__)
     assert exc.value.code == 1
-    err_lines = capsys.readouterr().err.strip().splitlines()
-    assert len(err_lines) == 1
-    assert err_lines[0].startswith("error:")
+    captured = capsys.readouterr()
+    assert "Traceback" not in captured.err
+    err_lines = captured.err.strip().splitlines()
+    assert len(err_lines) == 2
+    assert err_lines[0].startswith("error: narrator call failed:")
+    assert err_lines[1] == "Your save is intact. Run `python -m d20.play` to resume."
     assert load_game(save) == game
