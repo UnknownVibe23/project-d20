@@ -9,7 +9,13 @@ import pytest
 
 import d20
 from d20.llm import client
-from d20.llm.client import StubLLM, _load_dotenv, narrate, narrate_messages
+from d20.llm.client import (
+    StubLLM,
+    _extract_reply,
+    _load_dotenv,
+    narrate,
+    narrate_messages,
+)
 from d20.llm.prompting import load_gm_contract
 
 
@@ -69,6 +75,72 @@ def _forbid_network(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", boom)
 
 
+_GOLD_THINKING_ONLY_RESPONSE = {
+    "id": "867c715ad3f64ac1be2e5136de55ba6c",
+    "created": 1795548309,
+    "model": "mistral-large-4",
+    "usage": {
+        "prompt_tokens": 20,
+        "total_tokens": 40,
+        "completion_tokens": 20,
+        "prompt_tokens_details": {"cached_tokens": 0},
+        "completion_tokens_details": {"reasoning_tokens": 19},
+        "service_tier": "standard",
+    },
+    "object": "chat.completion",
+    "choices": [
+        {
+            "index": 0,
+            "finish_reason": "length",
+            "message": {
+                "role": "assistant",
+                "tool_calls": None,
+                "content": [
+                    {
+                        "type": "thinking",
+                        "thinking": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    'The user wants me to say "hi" in exactly '
+                                    "five words. I need to construct a"
+                                ),
+                            }
+                        ],
+                        "closed": True,
+                    }
+                ],
+            },
+        }
+    ],
+}
+
+
+def _fake_urlopen_capturing(monkeypatch, response_body):
+    """Patch urlopen to return response_body; capture the payload and timeout."""
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(response_body).encode("utf-8")
+
+    def fake_urlopen(req, timeout):
+        captured["payload"] = json.loads(req.data)
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("MISTRAL_MODEL", "test-model")
+    monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+    return captured
+
+
 def test_narrate_messages_rejects_empty_list_without_network(monkeypatch):
     _forbid_network(monkeypatch)
     with pytest.raises(ValueError, match="non-empty list"):
@@ -100,28 +172,11 @@ def test_narrate_messages_requires_first_message_system_without_network(monkeypa
 
 
 def test_narrate_messages_sends_given_messages_verbatim(monkeypatch):
-    captured = {}
-
-    class FakeResponse:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def read(self):
-            return json.dumps(
-                {"choices": [{"message": {"content": "GM reply."}}]}
-            ).encode("utf-8")
-
-    def fake_urlopen(req, timeout):
-        captured["payload"] = json.loads(req.data)
-        captured["timeout"] = timeout
-        return FakeResponse()
-
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    monkeypatch.setenv("MISTRAL_MODEL", "test-model")
-    monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+    captured = _fake_urlopen_capturing(
+        monkeypatch, {"choices": [{"message": {"content": "GM reply."}}]}
+    )
+    monkeypatch.delenv("MISTRAL_TIMEOUT", raising=False)
+    monkeypatch.setattr(client, "_load_dotenv", lambda: None)
     messages = [
         {"role": "system", "content": "contract"},
         {"role": "user", "content": "I look around."},
@@ -129,6 +184,98 @@ def test_narrate_messages_sends_given_messages_verbatim(monkeypatch):
     assert narrate_messages(messages) == "GM reply."
     assert captured["payload"]["messages"] == messages
     assert captured["payload"]["model"] == "test-model"
+    assert captured["timeout"] == 120
+
+
+def test_narrate_messages_default_timeout_is_120(monkeypatch):
+    captured = _fake_urlopen_capturing(
+        monkeypatch, {"choices": [{"message": {"content": "ok"}}]}
+    )
+    monkeypatch.delenv("MISTRAL_TIMEOUT", raising=False)
+    monkeypatch.setattr(client, "_load_dotenv", lambda: None)
+    messages = [{"role": "system", "content": "c"}, {"role": "user", "content": "u"}]
+    narrate_messages(messages)
+    assert captured["timeout"] == 120
+
+
+def test_narrate_messages_uses_mistral_timeout_from_env(monkeypatch):
+    captured = _fake_urlopen_capturing(
+        monkeypatch, {"choices": [{"message": {"content": "ok"}}]}
+    )
+    monkeypatch.setenv("MISTRAL_TIMEOUT", "7")
+    messages = [{"role": "system", "content": "c"}, {"role": "user", "content": "u"}]
+    narrate_messages(messages)
+    assert captured["timeout"] == 7
+
+
+def test_narrate_messages_returns_text_from_structured_content(monkeypatch):
+    body = {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "message": {
+                    "content": [
+                        {
+                            "type": "thinking",
+                            "thinking": [{"type": "text", "text": "hmm"}],
+                            "closed": True,
+                        },
+                        {"type": "text", "text": "The door creaks open."},
+                    ]
+                },
+            }
+        ]
+    }
+    _fake_urlopen_capturing(monkeypatch, body)
+    messages = [{"role": "system", "content": "c"}, {"role": "user", "content": "u"}]
+    assert narrate_messages(messages) == "The door creaks open."
+
+
+def test_narrate_messages_raises_readable_error_on_thinking_only_reply(monkeypatch):
+    _fake_urlopen_capturing(monkeypatch, _GOLD_THINKING_ONLY_RESPONSE)
+    messages = [{"role": "system", "content": "c"}, {"role": "user", "content": "hi"}]
+    with pytest.raises(ValueError, match="finish_reason=length"):
+        narrate_messages(messages)
+
+
+def test_extract_reply_returns_string_content_unchanged():
+    data = {"choices": [{"finish_reason": "stop", "message": {"content": "GM reply."}}]}
+    assert _extract_reply(data) == "GM reply."
+
+
+def test_extract_reply_concatenates_only_text_blocks():
+    data = {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "message": {
+                    "content": [
+                        {
+                            "type": "thinking",
+                            "thinking": [{"type": "text", "text": "let me think"}],
+                            "closed": True,
+                        },
+                        {"type": "text", "text": "You enter the "},
+                        {"type": "text", "text": "dark cave."},
+                    ]
+                },
+            }
+        ]
+    }
+    assert _extract_reply(data) == "You enter the dark cave."
+
+
+def test_extract_reply_thinking_only_gold_fixture_raises_with_finish_reason():
+    with pytest.raises(ValueError) as excinfo:
+        _extract_reply(_GOLD_THINKING_ONLY_RESPONSE)
+    assert "narrator returned no text" in str(excinfo.value)
+    assert "finish_reason=length" in str(excinfo.value)
+
+
+def test_extract_reply_empty_block_list_raises_with_finish_reason():
+    data = {"choices": [{"finish_reason": "stop", "message": {"content": []}}]}
+    with pytest.raises(ValueError, match="finish_reason=stop"):
+        _extract_reply(data)
 
 
 def test_narrate_wraps_prompt_with_gm_contract_system_message(monkeypatch):
