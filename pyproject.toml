@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-d20"
+version = "0.0.1"
+description = "Personal AI Game Master: deterministic code owns rules and state; the LLM narrates."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+include = ["d20*"]
+
+[tool.pytest.ini_options]
+testpaths = ["d20"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
