@@ -11,6 +11,7 @@ API_URL = "https://api.mistral.ai/v1/chat/completions"
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(d20.__file__)))
 _DOTENV_PATH = os.path.join(_REPO_ROOT, ".env")
 _MESSAGE_ROLES = ("system", "user", "assistant")
+_DEFAULT_TIMEOUT_SECONDS = 120
 
 
 def _load_dotenv(path=_DOTENV_PATH):
@@ -55,12 +56,35 @@ def _validate_messages(messages) -> None:
     )
 
 
+def _extract_reply(data: dict) -> str:
+    """Extract the assistant's text from a chat-completion response body.
+
+    Accepts both content shapes: a plain string (returned as-is) or a list
+    of typed blocks, from which the "text" fields of all blocks with
+    type "text" are concatenated. Raises ValueError naming the
+    finish_reason when the reply contains no text at all.
+    """
+    choice = data["choices"][0]
+    content = choice["message"]["content"]
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        text = "".join(
+            block.get("text", "") for block in content if block.get("type") == "text"
+        )
+        if text:
+            return text
+    raise ValueError(
+        f"narrator returned no text (finish_reason={choice.get('finish_reason')})"
+    )
+
+
 def narrate_messages(messages: list) -> str:
     """Validate messages offline, then send them verbatim to the Mistral API.
 
     Returns the narrator's reply text. Raises ValueError with a readable
-    message if the message list is malformed; no network call is made in
-    that case.
+    message if the message list is malformed (no network call is made in
+    that case) or if the reply contains no text.
     """
     _validate_messages(messages)
     _load_dotenv()
@@ -69,8 +93,9 @@ def narrate_messages(messages: list) -> str:
     key = os.environ["MISTRAL_API_KEY"]
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     req = urllib.request.Request(API_URL, data=body, headers=headers)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read())["choices"][0]["message"]["content"]
+    timeout = int(os.environ.get("MISTRAL_TIMEOUT", str(_DEFAULT_TIMEOUT_SECONDS)))
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return _extract_reply(json.loads(resp.read()))
 
 
 def narrate(user_prompt: str) -> str:

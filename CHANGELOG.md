@@ -26,3 +26,12 @@ SemVer 0.x.
 - CLI `python -m d20.play` (`d20/play.py`): --new/--description/--save/
   --journal flags, exit code 2 on expected errors, exit code 1 with a
   one-line error on LLM/network failures mid-session (Task 3-narrator-loop)
+
+### Fixed
+- Narrator client (`d20/llm/client.py`): the HTTP timeout now comes from
+  the `MISTRAL_TIMEOUT` env var (default 120s, real env wins over `.env`),
+  and the reply is extracted by `_extract_reply`, which accepts both a
+  plain-string `content` and a list of typed blocks (concatenating the
+  `text` fields of `type == "text"` blocks) and raises a readable
+  `ValueError` naming the `finish_reason` when the reply contains no text
+  (Task P1-F1)

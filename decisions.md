@@ -74,3 +74,10 @@ Decision: main(argv=None, llm=None, input_fn=None, print_fn=None) exposes inject
 Alternatives: validating env at startup (rejected: it would make the mandated exit-1 missing-env-at-LLM-time test unreachable); exit 2 for missing env (rejected: the test list explicitly says exit 1 at LLM time).
 Decided-by: coding-agent
 Status: Proposed in PR #5 (pending human acceptance at merge)
+
+## D-010 — Narrator client timeout source and no-text error type — 2026-11-24
+Context: card P1-F1 fixed the timeout default (120s, MISTRAL_TIMEOUT env) and the two content shapes, but not where the timeout is read or which exception type signals "no text".
+Decision: the timeout is read as int(os.environ.get("MISTRAL_TIMEOUT", "120")) after _load_dotenv() (real env wins over .env, as before); the no-text case raises ValueError (not RuntimeError) carrying the finish_reason, because d20.play catches (OSError, ValueError) and would otherwise show a traceback; _extract_reply concatenates block["text"] for blocks with type == "text".
+Alternatives: RuntimeError for no-text (rejected: escapes play.py's handler); hardcoding 120 (rejected: the card requires the env var).
+Decided-by: coding-agent
+Status: Proposed in PR #6 (pending human acceptance at merge)
