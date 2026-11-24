@@ -38,4 +38,11 @@ Context: card 1-state fixed the save format and public API but not the validatio
 Decision: schema enforced strictly (exactly the five top-level keys, no extras; transcript entries exactly role+text); save_game validates before writing, then dumps to a hidden mkstemp temp file in the target directory, fsyncs, and os.replace's it (temp removed on failure); ValueError messages carry the file path; DEFAULT_SAVE_PATH anchored to repo root like the .env loader; str paths accepted alongside Path.
 Alternatives: lenient extra keys (rejected: card says "exactly these five"); temp file in the system temp dir (rejected: os.replace across filesystems is not atomic); plain open+write (rejected: not crash-safe).
 Decided-by: coding-agent
-Status: Proposed in PR #3 (pending human acceptance at merge)
+Status: Accepted in PR #3
+
+## D-005 — Prompt-builder internals: validator reuse, flag rendering, stub shape — 2026-11-24
+Context: card 2-gm-contract fixed the API and line formats but not validator reuse, value rendering, or StubLLM internals.
+Decision: `build_state_block` reuses d20.state.save's private `_validate_game` (card 1 files untouched); flag values render via Python `str()`, so bools appear as `True`/`False`; `build_messages` loads the contract from `DEFAULT_GM_PROMPT_PATH`; StubLLM records `narrate_messages` calls in a separate `.messages` list with its own reply rotation; a local `_require` helper in client.py keeps the mandated ValueError raises without tripping ruff TRY004; `prompts/gm.txt` ends with a single trailing newline.
+Alternatives: making save.py's validator public (rejected: card 2 must not modify card 1 files); JSON-style `true`/`false` in the facts block (rejected: plain `str()` is deterministic and the block is read by the LLM, not parsed); one shared rotation counter in StubLLM (rejected: would change existing narrate test semantics).
+Decided-by: coding-agent
+Status: Proposed in PR #4 (pending human acceptance at merge)

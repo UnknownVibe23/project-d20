@@ -10,6 +10,6 @@ engine -> 3 module runner -> 4 VTT -> 5 campaign polish.
 
 ## Status
 - Current phase: 1 (narrator loop) — in progress
-- Last completed task: Task 0 (skeleton, rules, dice)
-- Task 1-state: state layer (versioned save, atomic load/save) in review
-- Next: Task 1 cards 2-3 (LLM narrator loop, CLI)
+- Last completed task: Task 1-state (state layer, PR #3)
+- Task 2-gm-contract: GM contract file + prompt builder in review
+- Next: Task 1 card 3 (narrator loop + CLI)
