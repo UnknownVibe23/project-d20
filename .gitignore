@@ -1,4 +1,5 @@
 .env
+saves/
 __pycache__/
 *.py[cod]
 .venv/
