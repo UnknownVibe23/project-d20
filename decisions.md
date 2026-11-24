@@ -81,3 +81,10 @@ Decision: the timeout is read as int(os.environ.get("MISTRAL_TIMEOUT", "120")) a
 Alternatives: RuntimeError for no-text (rejected: escapes play.py's handler); hardcoding 120 (rejected: the card requires the env var).
 Decided-by: coding-agent
 Status: Proposed in PR #6 (pending human acceptance at merge)
+
+## D-011 — GM contract round-1 tune (narration length budget; companion continuity; inner-state flags) + friendly narrator failure exit — 2026-11-24
+Context: playtest round 1 (2026-11-24, 12 live turns on merged main) found cold failure exits, ~600-char narrations regardless of action size, and a lost companion (Wick) plus an ignored mood flag.
+Decision: prompts/gm.txt gains a clearly-marked "Round-1 playtest addendum" with rules 5-7 (length budget: normally 2-5 sentences, never more than ~150 words; companion continuity: established companions persist and are never relocated without narration; inner-state flags color but are never invented or changed), existing rules 1-4 untouched; d20/play.py's (OSError, ValueError) handler adds the line "Your save is intact. Run `python -m d20.play` to resume." after the error line, exit code 1 unchanged, no retry.
+Alternatives: in-loop retry (rejected: Phase 1 decision stands); rewording or renumbering rules 1-4 (rejected: card forbids it); streaming or transcript summarization (out of scope, Phase 2).
+Decided-by: coding-agent
+Status: Proposed in PR #7 (pending human acceptance at merge)
