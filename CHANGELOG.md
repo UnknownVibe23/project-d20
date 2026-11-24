@@ -16,3 +16,13 @@ SemVer 0.x.
 - `narrate_messages(messages)` in the Mistral client with offline
   validation; `narrate()` is now a thin wrapper over it using the GM
   contract, and `StubLLM` gained `narrate_messages` (Task 2-gm-contract)
+- Narrator game loop `d20/game/session.py` with `GameSession`: input ->
+  prompt assembly -> LLM -> transcript -> autosave -> journal entry,
+  local slash commands (/help, /quit, /take, /drop, /flag, /stats), and
+  atomic turns (an LLM failure commits nothing) (Task 3-narrator-loop)
+- Play journal `d20/game/journal.py` with `append_journal_entry`: one
+  newline-terminated JSON line per completed turn (ts, turn,
+  player_input, prompt_chars, reply_chars, model) (Task 3-narrator-loop)
+- CLI `python -m d20.play` (`d20/play.py`): --new/--description/--save/
+  --journal flags, exit code 2 on expected errors, exit code 1 with a
+  one-line error on LLM/network failures mid-session (Task 3-narrator-loop)

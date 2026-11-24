@@ -46,3 +46,31 @@ Decision: `build_state_block` reuses d20.state.save's private `_validate_game` (
 Alternatives: making save.py's validator public (rejected: card 2 must not modify card 1 files); JSON-style `true`/`false` in the facts block (rejected: plain `str()` is deterministic and the block is read by the LLM, not parsed); one shared rotation counter in StubLLM (rejected: would change existing narrate test semantics).
 Decided-by: coding-agent
 Status: Accepted in PR #4
+
+## D-006 — Journal module, ts format, default journal path — 2026-11-24
+Context: card 3-narrator-loop allowed append_journal_entry in journal.py or session.py and fixed the record fields but not the module, the ts format, or the default path derivation.
+Decision: the journal lives in d20/game/journal.py; the session builds the record with ts = datetime.now(UTC).isoformat(); the CLI derives the default journal path as save_path.with_suffix(".jsonl").
+Alternatives: generating ts inside append_journal_entry (rejected: the caller owns the record and the appender stays a dumb writer); RFC-3339 "Z" suffix (rejected: isoformat() "+00:00" is equally valid ISO-8601).
+Decided-by: coding-agent
+Status: Proposed in PR #5 (pending human acceptance at merge)
+
+## D-007 — Input normalization and command argument parsing — 2026-11-24
+Context: the card fixes empty-input and slash-command behavior but not whitespace handling or multi-word arguments.
+Decision: input is stripped; whitespace-only input counts as empty (re-prompt, no LLM call); /take and /drop take the whole remainder of the line as the item; /flag takes key plus remainder as the raw value; a missing argument prints a usage note and mutates nothing.
+Alternatives: sending raw unstripped input to the LLM (rejected: stray whitespace pollutes the prompt); single-token items only (rejected: "golden key" is a natural item name).
+Decided-by: coding-agent
+Status: Proposed in PR #5 (pending human acceptance at merge)
+
+## D-008 — /flag value syntax, no-op notes, prompt cue — 2026-11-24
+Context: the card specifies true/false/integer/raw-string parsing and missing-value-sets-True but not the exact integer syntax or the wording of the duplicate/absent notes.
+Decision: integer syntax is [+-]?digits parsed with int(); true/false match case-insensitively; duplicate /take and absent /drop print a note and do not save (nothing mutated); the "> " cue is printed with end="" so the terminal shows a real prompt.
+Alternatives: unsigned digits only (rejected: "-3" is a plausible counter); saving also on no-op commands (rejected: the card says save after mutating).
+Decided-by: coding-agent
+Status: Proposed in PR #5 (pending human acceptance at merge)
+
+## D-009 — CLI injection seams and the exit-2 vs exit-1 env split — 2026-11-24
+Context: the card fixes exit codes 2 and 1 but not how tests inject I/O into the CLI; it lists "missing env" both under exit-2 expected errors and in the exit-1 LLM-time test.
+Decision: main(argv=None, llm=None, input_fn=None, print_fn=None) exposes injection seams (defaults: sys.argv, the real client module, builtins input/print); there is no startup env check, so a missing MISTRAL_* variable surfaces at LLM time as KeyError -> exit 1, matching the card's test list; --description without --new is an argparse error (exit 2); the banner is "<name> — type /help to see the commands.".
+Alternatives: validating env at startup (rejected: it would make the mandated exit-1 missing-env-at-LLM-time test unreachable); exit 2 for missing env (rejected: the test list explicitly says exit 1 at LLM time).
+Decided-by: coding-agent
+Status: Proposed in PR #5 (pending human acceptance at merge)
