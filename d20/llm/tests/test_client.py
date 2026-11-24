@@ -1,10 +1,16 @@
 """Tests for d20.llm.client using StubLLM only. No network access."""
 
 import inspect
+import json
 import os
+import urllib.request
+
+import pytest
 
 import d20
-from d20.llm.client import StubLLM, _load_dotenv, narrate
+from d20.llm import client
+from d20.llm.client import StubLLM, _load_dotenv, narrate, narrate_messages
+from d20.llm.prompting import load_gm_contract
 
 
 def test_narrate_signature():
@@ -54,3 +60,102 @@ def test_load_dotenv_default_path_is_repo_root_env():
     default = inspect.signature(_load_dotenv).parameters["path"].default
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(d20.__file__)))
     assert default == os.path.join(repo_root, ".env")
+
+
+def _forbid_network(monkeypatch):
+    def boom(*args, **kwargs):
+        raise AssertionError("network access attempted in an offline test")
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+
+
+def test_narrate_messages_rejects_empty_list_without_network(monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ValueError, match="non-empty list"):
+        narrate_messages([])
+
+
+def test_narrate_messages_rejects_non_dict_entry_without_network(monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ValueError, match=r"messages\[0\] must be a dict"):
+        narrate_messages(["not a dict"])
+
+
+def test_narrate_messages_rejects_bad_role_without_network(monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ValueError, match="invalid role 'narrator'"):
+        narrate_messages([{"role": "narrator", "content": "hi"}])
+
+
+def test_narrate_messages_rejects_non_str_content_without_network(monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ValueError, match="'content' must be a string"):
+        narrate_messages([{"role": "system", "content": 42}])
+
+
+def test_narrate_messages_requires_first_message_system_without_network(monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ValueError, match=r"messages\[0\] must have role 'system'"):
+        narrate_messages([{"role": "user", "content": "hi"}])
+
+
+def test_narrate_messages_sends_given_messages_verbatim(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {"choices": [{"message": {"content": "GM reply."}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(req, timeout):
+        captured["payload"] = json.loads(req.data)
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("MISTRAL_MODEL", "test-model")
+    monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+    messages = [
+        {"role": "system", "content": "contract"},
+        {"role": "user", "content": "I look around."},
+    ]
+    assert narrate_messages(messages) == "GM reply."
+    assert captured["payload"]["messages"] == messages
+    assert captured["payload"]["model"] == "test-model"
+
+
+def test_narrate_wraps_prompt_with_gm_contract_system_message(monkeypatch):
+    captured = {}
+
+    def fake_narrate_messages(messages):
+        captured["messages"] = messages
+        return "reply"
+
+    monkeypatch.setattr(client, "narrate_messages", fake_narrate_messages)
+    assert narrate("hello") == "reply"
+    assert captured["messages"] == [
+        {"role": "system", "content": load_gm_contract()},
+        {"role": "user", "content": "hello"},
+    ]
+
+
+def test_stub_llm_narrate_messages_records_and_rotates():
+    stub = StubLLM(["First.", "Second."])
+    first = [{"role": "system", "content": "c"}, {"role": "user", "content": "u1"}]
+    second = [{"role": "system", "content": "c"}, {"role": "user", "content": "u2"}]
+    assert stub.narrate_messages(first) == "First."
+    assert stub.narrate_messages(second) == "Second."
+    assert stub.narrate_messages(first) == "First."
+    assert stub.messages == [first, second, first]
+
+
+def test_stub_llm_narrate_messages_matches_interface():
+    params = list(inspect.signature(StubLLM.narrate_messages).parameters)
+    assert params == ["self", "messages"]
