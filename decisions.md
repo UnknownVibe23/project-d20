@@ -32,3 +32,10 @@ Alternatives: strict bare d20 only for adv/dis (rejected: needless
 strictness); traceback on CLI input errors (rejected: bad UX).
 Decided-by: planner
 Status: Accepted in PR #2
+
+## D-004 — State-layer internals: strict schema, temp-file discipline, error wording — 2026-11-24
+Context: card 1-state fixed the save format and public API but not the validation internals or error text.
+Decision: schema enforced strictly (exactly the five top-level keys, no extras; transcript entries exactly role+text); save_game validates before writing, then dumps to a hidden mkstemp temp file in the target directory, fsyncs, and os.replace's it (temp removed on failure); ValueError messages carry the file path; DEFAULT_SAVE_PATH anchored to repo root like the .env loader; str paths accepted alongside Path.
+Alternatives: lenient extra keys (rejected: card says "exactly these five"); temp file in the system temp dir (rejected: os.replace across filesystems is not atomic); plain open+write (rejected: not crash-safe).
+Decided-by: coding-agent
+Status: Proposed in PR for task/1-state (pending human acceptance at merge)

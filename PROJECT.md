@@ -9,6 +9,7 @@ Phases: 0 skeleton + dice -> 1 narrator loop -> 2 database + rules
 engine -> 3 module runner -> 4 VTT -> 5 campaign polish.
 
 ## Status
-- Current phase: 0 (skeleton, rules, dice)
-- Last completed task: (none yet)
-- Next: Task 1 — narrator loop
+- Current phase: 1 (narrator loop) — in progress
+- Last completed task: Task 0 (skeleton, rules, dice)
+- Task 1-state: state layer (versioned save, atomic load/save) in review
+- Next: Task 1 cards 2-3 (LLM narrator loop, CLI)
