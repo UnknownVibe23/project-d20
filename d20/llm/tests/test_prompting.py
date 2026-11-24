@@ -48,6 +48,27 @@ def test_default_contract_file_exists_and_starts_the_gm_contract():
     )
 
 
+def test_default_contract_pins_the_round1_addendum_rules():
+    contract = load_gm_contract()
+    assert "Round-1 playtest addendum" in contract
+    assert "Normally narrate in 2 to 5 sentences" in contract
+    assert "150 words" in contract
+    assert "never pad" in contract
+    assert "Established companions" in contract
+    assert "never relocate or re-introduce them" in contract
+    assert "without narrating how they got there" in contract
+    assert "Respect inner-state flags" in contract
+    assert "color the narration" in contract
+    assert "never invent or change the character's feelings" in contract
+    assert "the declared flags" in contract
+
+
+def test_default_contract_keeps_the_original_rules_unrenumbered():
+    contract = load_gm_contract()
+    assert "1. Never advance time" in contract
+    assert "4. Respect the facts." in contract
+
+
 def test_build_state_block_populated_game_exact_three_lines():
     game = _populated_game()
     assert build_state_block(game) == (
